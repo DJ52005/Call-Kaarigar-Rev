@@ -77,14 +77,15 @@ export const cancelBookingApi = async (bookingId, workerServiceId) => {
 export const getServiceCategoriesApi = () => api.get(url.REST_CATEGORIES);
 export const getServicesByCategoryApi = (categoryId) =>
   api.get(`${url.REST_SERVICES_CATEGORY}/${categoryId}`);
-export const getProvidersByServiceApi = (serviceId) =>
-  api.get(`${url.REST_WORKER_SERVICES}/${serviceId}`);
+// ✅ Get all ACTIVE services
+export const getActiveServicesApi = () =>
+  api.get(`${BASE_URL}api/services/active`);
 export const getProvidersByService = (workerId) => {
   return api.get(`${config.API_URL}/worker-services/worker/${workerId}`);
 };
 export const getAllWorkers = async () => {
   try {
-    const res = await axios.get("http://call-kaarigar-env.eba-yrrc4gbq.ap-south-1.elasticbeanstalk.com/api/worker-profile");
+    const res = await axios.get(`${config.API_URL}/api/worker-profile`);
     return res.data; // array of workers
   } catch (err) {
     console.error("Error fetching workers:", err);

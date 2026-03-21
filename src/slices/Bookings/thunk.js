@@ -4,7 +4,7 @@ import { getAllBookings, cancelBookingApi } from "../../api/backend_helper";
 
 // fetch bookings
 export const fetchBookings = createAsyncThunk(
-  "bookings/fetchAll",
+  "bookings/all",
   async (_, { rejectWithValue }) => {
     try {
       const res = await getAllBookings();

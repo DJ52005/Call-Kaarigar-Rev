@@ -3,7 +3,7 @@ import PublicRoute from "./routes/PublicRoute";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 import Dashboard from "./pages/Dashboard.jsx";
-//import Login from "./pages/Login";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.jsx";
 import Orders from "./pages/Orders.jsx";
 import Customers from "./pages/Customers.jsx";
@@ -22,13 +22,13 @@ import { Navigate } from "react-router-dom";
 // ✅ Routes configuration
 export const routes = [
   // 🔓 Public route for login
-  // {
-  //   path: "/login",
-  //   element: <PublicRoute />, // wrapper
-  //   children: [
-  //     { index: true, element: <Login />, handle: { title: "Login" } },
-  //   ],
-  // },
+  {
+    path: "/login",
+    element: <PublicRoute />, // wrapper
+    children: [
+      { index: true, element: <Login />, handle: { title: "Login" } },
+    ],
+  },
 
   // 🔀 Redirect root → login
   {

@@ -1,8 +1,9 @@
 {
 
-    "API_URL": "http://call-kaarigar-env.eba-yrrc4gbq.ap-south-1.elasticbeanstalk.com",
-    "API_BASE_URL": "http://call-kaarigar-env.eba-yrrc4gbq.ap-south-1.elasticbeanstalk.com",
+    "API_URL": "https://call-karigar-backend-production.up.railway.app",
+    "API_BASE_URL": "https://call-karigar-backend-production.up.railway.app",
 
-    
+
+
     "API_URL_LOCAL": "http://localhost:5000"
 }

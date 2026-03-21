@@ -1,5 +1,6 @@
 // src/service2/thunk.js
 import { createAsyncThunk } from "@reduxjs/toolkit";
+import config from "../../config/config.json";
 import {
   getAllWorkerProfilesApi,
   verifyWorkerDocumentApi,

@@ -19,7 +19,7 @@ export const REST_BOOKINGS = "/api/bookings";
 export const REST_CATEGORIES = "/api/service-categories";
 
 // Services by category
-export const REST_SERVICES_CATEGORY = "/api/services/category";
+export const REST_SERVICES_CATEGORY = "/api/services/active";
 
 // Providers by service
 export const REST_WORKER_SERVICES = "/api/worker-services/service";

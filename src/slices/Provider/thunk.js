@@ -1,4 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
+import config from "../../config/config.json";
 import {
   getWorkerDocumentsApi,
   getWorkerServicesApi,
@@ -17,7 +18,7 @@ export const fetchWorkersWithDetails = createAsyncThunk(
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://call-kaarigar-env.eba-yrrc4gbq.ap-south-1.elasticbeanstalk.com/api/worker-profile",
+        `${config.API_URL}/api/worker-profile`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

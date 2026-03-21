@@ -10,7 +10,7 @@ import config from "../../config/config.json";
 
 // Fetch all categories
 export const fetchAllCategories = createAsyncThunk(
-  "services/fetchCategories",
+  "services/active",
   async (_, { rejectWithValue }) => {
     try {
       const res = await axiosInstance.get(`${config.API_URL}${REST_CATEGORIES}`);
