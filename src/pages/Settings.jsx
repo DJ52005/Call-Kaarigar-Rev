@@ -1,0 +1,154 @@
+import React, { useState } from "react";
+
+export default function Settings() {
+  // State declarations
+  const [appName, setAppName] = useState("Call Kaarigar");
+  const [appVersion, setAppVersion] = useState("2.15");
+  const [supportEmail, setSupportEmail] = useState("support@callkaarigar.com");
+  const [phone, setPhone] = useState("+91 755 123 4567");
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [language, setLanguage] = useState("Hindi");
+  const [serviceRadius, setServiceRadius] = useState(25);
+
+  const radiusLabel = `${serviceRadius} km`;
+
+  return (
+    <div className="p-6 bg-gradient-to-br from-green-50 via-green-50 to-green-100 min-h-screen">
+      {/* Header */}
+      <h2 className="text-2xl font-bold mb-1 text-gray-900">System Settings</h2>
+      <p className="text-gray-600 mb-6">
+        Manage app configuration, security, and preferences
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Sidebar Menu */}
+        <nav className="bg-white rounded-2xl shadow-md p-4 sticky top-6 md:self-start transition hover:shadow-lg">
+          <ul className="space-y-3 text-gray-700">
+            <li className="font-semibold text-green-600 cursor-default select-none">
+              General
+            </li>
+            <li className="hover:text-green-600 cursor-pointer transition">Security</li>
+            <li className="hover:text-green-600 cursor-pointer transition">Notifications</li>
+            <li className="hover:text-green-600 cursor-pointer transition">Payment</li>
+            <li className="hover:text-green-600 cursor-pointer transition">Location</li>
+            <li className="hover:text-green-600 cursor-pointer transition">Backup</li>
+            <li className="hover:text-green-600 cursor-pointer transition">Integrations</li>
+          </ul>
+        </nav>
+
+        {/* Main Content */}
+        <section className="md:col-span-3 bg-white rounded-2xl shadow-md p-6 transition hover:shadow-lg hover:scale-[1.01]">
+          <h3 className="text-lg font-semibold mb-6 text-gray-900">General Settings</h3>
+
+          {/* Inputs Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <input
+              type="text"
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+              placeholder="App Name"
+              value={appName}
+              onChange={(e) => setAppName(e.target.value)}
+              aria-label="Application Name"
+            />
+            <input
+              type="text"
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+              placeholder="App Version"
+              value={appVersion}
+              onChange={(e) => setAppVersion(e.target.value)}
+              aria-label="Application Version"
+            />
+            <input
+              type="email"
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+              placeholder="Support Email"
+              value={supportEmail}
+              onChange={(e) => setSupportEmail(e.target.value)}
+              aria-label="Support Email"
+            />
+            <input
+              type="tel"
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+              placeholder="Phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              aria-label="Support Phone"
+            />
+          </div>
+
+          {/* Maintenance Mode Toggle */}
+          <div className="mb-6 flex items-center gap-3">
+            <input
+              id="maintenanceMode"
+              type="checkbox"
+              checked={maintenanceMode}
+              onChange={(e) => setMaintenanceMode(e.target.checked)}
+              className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+            />
+            <label
+              htmlFor="maintenanceMode"
+              className="select-none cursor-pointer text-gray-700"
+            >
+              Enable maintenance mode
+            </label>
+          </div>
+
+          {/* Language and Service Radius Settings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+            {/* Language Selector */}
+            <div className="flex flex-col">
+              <label
+                htmlFor="languageSelect"
+                className="mb-1 font-medium text-gray-700"
+              >
+                Language
+              </label>
+              <select
+                id="languageSelect"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 transition"
+                aria-label="Select Language"
+              >
+                <option>Hindi</option>
+                <option>English</option>
+                <option>Marathi</option>
+                <option>Tamil</option>
+              </select>
+            </div>
+
+            {/* Service Radius Slider */}
+            <div className="flex flex-col">
+              <label
+                htmlFor="serviceRadius"
+                className="mb-1 font-medium text-gray-700"
+              >
+                Service Radius (km):{" "}
+                <span className="font-semibold">{radiusLabel}</span>
+              </label>
+              <input
+                type="range"
+                id="serviceRadius"
+                min="1"
+                max="100"
+                value={serviceRadius}
+                onChange={(e) => setServiceRadius(Number(e.target.value))}
+                className="w-full accent-green-600 cursor-pointer"
+                aria-valuemin={1}
+                aria-valuemax={100}
+                aria-valuenow={serviceRadius}
+              />
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="mt-8 flex justify-end">
+            <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow transition">
+              Save Changes
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

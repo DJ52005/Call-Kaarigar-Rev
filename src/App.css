@@ -1,0 +1,28 @@
+/* src/styles/vars.css */
+:root {
+  --clr-primary:        #232A45; /* dark blue‑black */
+  --clr-secondary:      #59A892; /* teal */
+  --clr-secondary-light:#BBFBFF; /* light aqua */
+  --clr-text-on-primary:#ffffff; /* white on dark   */
+}
+
+
+.bg-primary {
+    background-color: var(--clr-primary);
+}
+
+.clr-primary {
+    color: var(--clr-primary);
+}
+
+.bg-secondary-light {
+    background-color: var(--clr-secondary-light);
+}
+
+.bg-secondary-light:hover {
+    background-color: var;
+}
+
+.clr-secondary-light {
+    color: var(--clr-secondary-light);
+}
