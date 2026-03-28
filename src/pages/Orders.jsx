@@ -9,7 +9,30 @@ export default function Orders() {
     (state) => state.bookings || {}
   );
 
-  const bookings = Array.isArray(rawList) ? rawList : rawList?.data || [];
+  const bookings = (Array.isArray(rawList) ? rawList : rawList?.data || []).map((b) => ({
+  ...b,
+
+  description:
+    b.workerServiceId?.description ||
+    b.workerServiceId?.serviceId?.description ||
+    "No description",
+
+  price: b.totalAmount || b.subTotal || 0,
+
+  city:
+  b.address_id?.city ||
+  b.address_id?.state ||
+  b.address_id?.country ||
+  "No Address",
+
+  timeSlot: b.scheduledTimeSlot
+    ? `${b.scheduledTimeSlot.start} - ${b.scheduledTimeSlot.end}`
+    : "",
+
+  bookingDateFormatted: b.bookingDate
+    ? new Date(b.bookingDate).toLocaleDateString()
+    : "N/A",
+}));
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
@@ -50,7 +73,9 @@ export default function Orders() {
   const inProgressOrders = bookings.filter((b) => b.status === "in-progress").length;
   const completedOrders = bookings.filter((b) => b.status === "completed").length;
   const cancelledOrders = bookings.filter((b) => b.status === "cancelled").length;
-  const totalRevenue = bookings.reduce((sum, b) => sum + (b.price || 0), 0);
+  const totalRevenue = bookings
+  .filter((b) => b.status === "completed")
+  .reduce((sum, b) => sum + (b.price || 0), 0);
 
   const filteredBookings = bookings.filter((b) => {
     const matchesSearch =
@@ -291,11 +316,13 @@ export default function Orders() {
                     {b.workerId?.name || b.workerName || b.worker?.name || "N/A"}
                   </p>
                   <p className="text-gray-500 text-sm">
-                    {b.city || "Unknown"}, {b.bookingDate || "N/A"} {b.timeSlot || ""}
+                    {b.address_id
+  ? `${b.address_id.city}, ${b.address_id.state}`
+  : "No Address Added"}, {b.bookingDateFormatted} {b.timeSlot}
                   </p>
                 </div>
                 <div className="text-right">
-                  <h3 className="font-bold text-lg text-gray-800">₹{b.price || 0}</h3>
+                  <h3 className="font-bold text-lg text-gray-800">₹{b.price}</h3>
                   <p
                     className={`${
                       b.status === "completed"

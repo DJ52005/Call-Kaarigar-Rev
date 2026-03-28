@@ -8,7 +8,26 @@ import {
 } from "../../api/backend_helper";
 
 // helper to normalize id field
-const norm = (obj) => ({ ...obj, id: obj.id || obj._id });
+const norm = (obj) => ({
+  id: obj._id || obj.id,
+
+  // map backend → frontend fields
+  customer: obj.userId?.name || "Unknown",
+  phone: obj.userId?.phone || "-",
+
+  issue: obj.subject || "No issue title",
+  description: obj.description || "",
+
+  status:
+    obj.status?.toLowerCase() === "open" ? "Pending" : "Resolved",
+
+  date: obj.createdAt
+    ? new Date(obj.createdAt).toLocaleDateString()
+    : "-",
+
+  // keep original if needed
+  raw: obj,
+});
 
 // GET /api/support-tickets
 // fetchComplaints
@@ -69,11 +88,13 @@ export const toggleComplaintStatus = createAsyncThunk(
   "support/toggleComplaintStatus",
   async ({ id, currentStatus }, { rejectWithValue, dispatch }) => {
     try {
-      const newStatus = currentStatus === "Pending" ? "Resolved" : "Pending";
+      const newStatus =
+        currentStatus === "Pending" ? "resolved" : "open";
+
       const res = await updateComplaintStatusApi(id, newStatus);
+
       const updated = norm(res.data);
 
-      // Refresh list & stats
       dispatch(fetchComplaints());
       dispatch(fetchStats());
 

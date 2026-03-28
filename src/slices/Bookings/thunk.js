@@ -12,7 +12,9 @@ export const fetchBookings = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || err.message);
     }
-    console.log("fetchBookings raw response:", res);
+    const res = await getAllBookings();
+console.log("fetchBookings raw response:", res);
+return Array.isArray(res) ? res : res.data || [];
 
   }
 );

@@ -31,12 +31,13 @@ export const addCategory = createAsyncThunk(
     try {
       const res = await axiosInstance.post(
         `${config.API_URL}${REST_CATEGORIES}`,
-        categoryData
+        {
+          name: categoryData.name,
+          description: categoryData.description || "", // ✅ ensure always sent
+        }
       );
-      if (Array.isArray(res?.data?.data)) {
-        return res.data.data[res.data.data.length - 1];
-      }
-      return res.data;
+
+      return res.data?.data || res.data;
     } catch (err) {
       return rejectWithValue(err?.response?.data || err.message);
     }

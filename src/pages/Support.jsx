@@ -1,291 +1,211 @@
 // src/pages/Support.jsx
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+
 import {
   fetchComplaints,
   fetchStats,
   fetchComplaintById,
   toggleComplaintStatus,
 } from "../slices/Support/thunk";
+
 import { clearSelectedComplaint } from "../slices/Support/reducer";
 
 export default function Support() {
   const dispatch = useDispatch();
 
-  const { complaints = [], stats = {}, selectedComplaint, loading, error } =
-    useSelector((state) => state.support || {});
+  const {
+    complaints = [],
+    stats = {},
+    selectedComplaint,
+    loading,
+    error,
+  } = useSelector((state) => state.support || {});
 
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     dispatch(fetchComplaints());
     dispatch(fetchStats());
   }, [dispatch]);
 
-  const renderError = (err) => {
-    if (!err) return null;
-    if (typeof err === "string") return err;
-    if (err.message) return err.message;
-    try {
-      return JSON.stringify(err);
-    } catch {
-      return String(err);
-    }
+  // FILTER
+  const filteredComplaints = complaints.filter((c) => {
+    const matchStatus =
+      statusFilter === "All" ? true : c.status === statusFilter;
+
+    const q = search.toLowerCase();
+    const matchSearch =
+      c.customer.toLowerCase().includes(q) ||
+      c.issue.toLowerCase().includes(q);
+
+    return matchStatus && matchSearch;
+  });
+
+  const handleToggleStatus = (id, status) => {
+    dispatch(toggleComplaintStatus({ id, currentStatus: status }));
   };
+
+  const openDetails = (id) => dispatch(fetchComplaintById(id));
+  const closeDetails = () => dispatch(clearSelectedComplaint());
 
   const exportCSV = () => {
-    const header = [
-      "ID",
-      "Customer",
-      "Issue",
-      "Description",
-      "Phone",
-      "Status",
-      "Date",
-    ];
     const rows = filteredComplaints.map((c) => [
       c.id,
-      c.customer ?? "",
-      c.issue ?? "",
-      c.description ?? "",
-      c.phone ?? "",
-      c.status ?? "",
-      c.date ?? "",
+      c.customer,
+      c.issue,
+      c.phone,
+      c.status,
+      c.date,
     ]);
-    const csvContent =
+
+    const csv =
       "data:text/csv;charset=utf-8," +
-      [header, ...rows].map((r) => r.map(String).join(",")).join("\n");
+      [["ID", "Customer", "Issue", "Phone", "Status", "Date"], ...rows]
+        .map((r) => r.join(","))
+        .join("\n");
 
     const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", "support_tickets.csv");
-    document.body.appendChild(link);
+    link.href = encodeURI(csv);
+    link.download = "complaints.csv";
     link.click();
-    document.body.removeChild(link);
   };
-
-  const filteredComplaints = (Array.isArray(complaints) ? complaints : []).filter(
-    (c) => {
-      const matchesStatus =
-        statusFilter === "All" ? true : (c.status ?? "") === statusFilter;
-      const q = (search ?? "").toLowerCase().trim();
-      const matchesSearch =
-        q === "" ||
-        (String(c.customer ?? "").toLowerCase().includes(q) ||
-          String(c.issue ?? "").toLowerCase().includes(q));
-      const matchesDate =
-        (!dateFrom || !c.date || new Date(c.date) >= new Date(dateFrom)) &&
-        (!dateTo || !c.date || new Date(c.date) <= new Date(dateTo));
-      return matchesStatus && matchesSearch && matchesDate;
-    }
-  );
-
-  const openDetails = (id) => {
-    if (!id) return;
-    dispatch(fetchComplaintById(id));
-  };
-
-  const closeDetails = () => {
-    dispatch(clearSelectedComplaint());
-  };
-
-  const handleToggleStatus = (id, currentStatus) => {
-    if (!id) return;
-    dispatch(toggleComplaintStatus({ id, currentStatus }));
-  };
-
-  const totalCount = Number(stats?.total) || 0;
-  const pendingCount = Number(stats?.pending) || 0;
-  const resolvedCount = Number(stats?.resolved) || 0;
 
   return (
-    <div className="p-6 bg-gradient-to-br from-green-50 via-green-50 to-green-100 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-2xl font-bold text-gray-900">Support / Complaints</h2>
+    <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 min-h-screen">
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Support / Complaints</h2>
+
         <button
           onClick={exportCSV}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition shadow"
+          className="bg-green-600 text-white px-4 py-2 rounded-lg"
         >
           Export CSV
         </button>
       </div>
-      <p className="text-gray-600 mb-6">
-        Track and resolve customer support issues efficiently
-      </p>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-        <StatCard label="Total Complaints" value={totalCount} color="text-green-600" />
-        <StatCard label="Pending" value={pendingCount} color="text-orange-500" />
-        <StatCard label="Resolved" value={resolvedCount} color="text-green-600" />
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-2xl shadow-md transition hover:shadow-lg mb-6 flex flex-col md:flex-row gap-4">
+      {/* FILTERS */}
+      <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-4">
         <input
-          type="text"
-          placeholder="Search by customer or issue..."
+          placeholder="Search..."
+          className="border px-3 py-2 rounded w-1/3"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border px-3 py-2 rounded w-full md:w-1/3 focus:ring-2 focus:ring-green-200"
         />
+
         <select
+          className="border px-3 py-2 rounded"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="border px-3 py-2 rounded w-full md:w-40 focus:ring-2 focus:ring-green-200"
         >
-          <option value="All">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="Resolved">Resolved</option>
+          <option>All</option>
+          <option>Pending</option>
+          <option>Resolved</option>
         </select>
-        <div className="flex gap-2 items-center w-full md:w-auto">
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="border px-3 py-2 rounded focus:ring-2 focus:ring-green-200"
-          />
-          <span className="text-gray-600">to</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="border px-3 py-2 rounded focus:ring-2 focus:ring-green-200"
-          />
-        </div>
       </div>
 
-      {/* Complaints List */}
-      <div>
-        {loading && (
-          <p className="text-center py-6 text-gray-500">Loading complaints...</p>
-        )}
-        {!loading && error && (
-          <p className="text-center py-4 text-red-600">{renderError(error)}</p>
-        )}
+      {/* TABLE (MATCHES CUSTOMER STYLE) */}
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100 text-gray-600 text-xs uppercase">
+            <tr>
+              <th className="px-4 py-3">Customer</th>
+              <th className="px-4 py-3">Issue</th>
+              <th className="px-4 py-3">Phone</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3 text-center">Actions</th>
+            </tr>
+          </thead>
 
-        {!loading && !error && (
-          <>
-            {Array.isArray(filteredComplaints) && filteredComplaints.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredComplaints.map((c) => (
-                  <div
-                    key={String(c.id)}
-                    className="bg-white rounded-2xl shadow-md p-5 transition hover:scale-105 hover:shadow-lg flex flex-col justify-between"
-                  >
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2 text-gray-900">
-                        {c.issue ?? "No issue title"}
-                      </h3>
-                      <p className="text-gray-700 mb-2">
-                        {c.description ?? "No description"}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Customer:</span>{" "}
-                        {c.customer ?? "Unknown"}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Phone:</span>{" "}
-                        <a
-                          href={`tel:${c.phone ?? ""}`}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {c.phone ?? "-"}
-                        </a>
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Date:</span>{" "}
-                        {c.date ?? "-"}
-                      </p>
-                      <span
-                        className={`inline-block mt-3 px-3 py-1 rounded-full text-xs font-medium ${
-                          (c.status ?? "").toLowerCase() === "resolved"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-orange-100 text-orange-700"
-                        }`}
-                      >
-                        {c.status ?? "Unknown"}
-                      </span>
-                    </div>
-                    <div className="flex gap-2 justify-end mt-4">
-                      {String((c.status ?? "").toLowerCase()) !== "resolved" && (
-                        <button
-                          onClick={() =>
-                            handleToggleStatus(c.id, c.status ?? "Pending")
-                          }
-                          className="px-3 py-2 rounded bg-green-600 text-white text-sm hover:bg-green-700"
-                        >
-                          Resolve
-                        </button>
-                      )}
-                      <button
-                        onClick={() => openDetails(c.id)}
-                        className="px-3 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="6" className="text-center py-6">
+                  Loading...
+                </td>
+              </tr>
+            ) : filteredComplaints.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="text-center py-6 text-gray-400">
+                  No complaints found
+                </td>
+              </tr>
             ) : (
-              <p className="text-center py-8 text-gray-500">
-                No complaints found.
-              </p>
+              filteredComplaints.map((c, i) => (
+                <tr
+                  key={c.id}
+                  className={`border-t ${
+                    i % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  }`}
+                >
+                  <td className="px-4 py-3 font-medium">{c.customer}</td>
+                  <td className="px-4 py-3">{c.issue}</td>
+                  <td className="px-4 py-3">{c.phone}</td>
+
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded text-xs ${
+                        c.status === "Resolved"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-orange-100 text-orange-700"
+                      }`}
+                    >
+                      {c.status}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3">{c.date}</td>
+
+                  <td className="px-4 py-3 flex gap-2 justify-center">
+                    {c.status !== "Resolved" && (
+                      <button
+                        onClick={() =>
+                          handleToggleStatus(c.id, c.status)
+                        }
+                        className="bg-green-600 text-white px-3 py-1 rounded text-xs"
+                      >
+                        Resolve
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => openDetails(c.id)}
+                      className="bg-indigo-600 text-white px-3 py-1 rounded text-xs"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
-          </>
-        )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Details Modal */}
-      {selectedComplaint && typeof selectedComplaint === "object" && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative">
+      {/* MODAL */}
+      {selectedComplaint && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-xl w-96 relative">
             <button
               onClick={closeDetails}
-              className="absolute top-3 right-3 text-gray-500 hover:text-black"
-              aria-label="Close"
+              className="absolute top-2 right-2"
             >
               ✕
             </button>
-            <h3 className="text-xl font-semibold mb-3 text-gray-900">
-              Complaint Details
-            </h3>
-            <p className="mb-2">
-              <strong>Customer:</strong> {selectedComplaint.customer ?? "-"}
-            </p>
-            <p className="mb-2">
-              <strong>Issue:</strong> {selectedComplaint.issue ?? "-"}
-            </p>
-            <p className="mb-3">
-              <strong>Description:</strong> {selectedComplaint.description ?? "-"}
-            </p>
-            <p className="mb-2">
-              <strong>Phone:</strong>{" "}
-              <a
-                href={`tel:${selectedComplaint.phone ?? ""}`}
-                className="text-blue-600 hover:underline"
-              >
-                {selectedComplaint.phone ?? "-"}
-              </a>
-            </p>
-            <p className="mb-2">
-              <strong>Date:</strong> {selectedComplaint.date ?? "-"}
-            </p>
-            <p
-              className={`mb-4 font-medium ${
-                (selectedComplaint.status ?? "").toLowerCase() === "pending"
-                  ? "text-orange-500"
-                  : "text-green-600"
-              }`}
-            >
-              Status: {selectedComplaint.status ?? "-"}
-            </p>
-            <div className="flex justify-end gap-2">
+
+            <h3 className="text-lg font-bold mb-2">Complaint Details</h3>
+
+            <p><b>Customer:</b> {selectedComplaint.customer}</p>
+            <p><b>Issue:</b> {selectedComplaint.issue}</p>
+            <p><b>Description:</b> {selectedComplaint.description}</p>
+            <p><b>Phone:</b> {selectedComplaint.phone}</p>
+            <p><b>Date:</b> {selectedComplaint.date}</p>
+            <p><b>Status:</b> {selectedComplaint.status}</p>
+
+            <div className="mt-4 flex gap-2 justify-end">
               <button
                 onClick={() =>
                   handleToggleStatus(
@@ -293,35 +213,14 @@ export default function Support() {
                     selectedComplaint.status
                   )
                 }
-                className={`px-3 py-2 rounded text-white ${
-                  (selectedComplaint.status ?? "").toLowerCase() === "pending"
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "bg-orange-500 hover:bg-orange-600"
-                }`}
+                className="bg-green-600 text-white px-3 py-1 rounded"
               >
-                {(selectedComplaint.status ?? "").toLowerCase() === "pending"
-                  ? "Mark Resolved"
-                  : "Reopen"}
+                Toggle Status
               </button>
-              <a
-                href={`tel:${selectedComplaint.phone ?? ""}`}
-                className="px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Call
-              </a>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function StatCard({ label, value, color }) {
-  return (
-    <div className="bg-white rounded-2xl p-6 text-center shadow-md transition hover:scale-105 hover:shadow-lg">
-      <h4 className="text-gray-500 font-medium">{label}</h4>
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
     </div>
   );
 }

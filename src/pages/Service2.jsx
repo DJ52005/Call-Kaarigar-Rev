@@ -2,146 +2,109 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchWorkersWithDetails,
-  deleteWorkerProfile,
-  updateWorkerProfile,
   verifyWorkerDocument,
 } from "../slices/Provider/thunk";
-import { normalizeWorkerId } from "../utils/normalizeWorkerId";
 
 const Service2 = () => {
   const dispatch = useDispatch();
+
   const list = useSelector((state) => state.provider.list);
   const loading = useSelector((state) => state.provider.loading);
   const error = useSelector((state) => state.provider.error);
 
-  const [selectedWorker, setSelectedWorker] = useState(null);
-  const [workerStatus, setWorkerStatus] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [selectedDocs, setSelectedDocs] = useState(null);
 
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editFor, setEditFor] = useState(null);
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
-
+  // ================= FETCH =================
   useEffect(() => {
     dispatch(fetchWorkersWithDetails());
   }, [dispatch]);
 
+  // ================= DEBUG =================
+  useEffect(() => {
+    console.log("🔥 WORKER LIST FULL:");
+
+    list.forEach((worker, i) => {
+      console.log(`👷 Worker ${i + 1}:`, worker);
+      console.log("👉 worker._id (FINAL):", worker._id);
+
+      if (worker.documents?.length) {
+        console.log("✅ Documents:", worker.documents);
+      } else {
+        console.log("⚠️ No documents");
+      }
+    });
+  }, [list]);
+
   if (loading) return <p className="text-center">Loading...</p>;
   if (error) return <p className="text-red-500 text-center">{String(error)}</p>;
 
+  // ================= SAFE ACCESS =================
+  const getEmail = (worker) => worker?.email || "";
+  const getPhone = (worker) =>
+    worker?.phone || worker?.phoneNumber || "";
+
+  // ================= STATUS =================
+  const getWorkerStatus = (worker) => {
+    const doc = worker?.documents?.[0];
+    return doc?.status || "pending";
+  };
+
+  // ================= VERIFY =================
   const handleVerifyWorker = (worker, status) => {
-    const workerId = normalizeWorkerId(worker);
-    if (!worker?.documents?.length) {
-      window.alert("This worker has no documents to verify.");
-      return;
-    }
-    const docId = worker.documents[0]?.id || worker.documents[0]?._id;
-    if (!docId) {
-      window.alert("Document ID missing.");
-      return;
-    }
-    dispatch(verifyWorkerDocument({ docId, status }));
-    setWorkerStatus((prev) => ({ ...prev, [workerId]: status }));
-    setSelectedWorker(null);
-  };
+  const doc = worker?.documents?.[0];
 
-  const openEdit = (worker) => {
-    setEditFor(worker);
-    setFormData({
-      name: worker?.name || worker?.fullName || "",
-      email: worker?.email || "",
-      phone: worker?.phone || worker?.mobile || "",
+  if (!doc?._id) {
+    console.warn("❌ No document found for worker:", worker._id);
+    return;
+  }
+
+  console.log("🚀 Verifying docId:", doc._id);
+
+  dispatch(verifyWorkerDocument({ docId: doc._id, status }))
+    .unwrap()
+    .then(() => {
+      dispatch(fetchWorkersWithDetails()); // 🔥 refresh list
+    })
+    .catch((err) => {
+      console.error("❌ Verify failed:", err);
     });
-    setEditModalOpen(true);
-  };
+};
 
-  const handleSubmitEdit = async (e) => {
-    e.preventDefault();
-    const workerId = normalizeWorkerId(editFor);
-    if (!workerId) return;
-    try {
-      await dispatch(updateWorkerProfile({ workerId, data: formData })).unwrap();
-      await dispatch(fetchWorkersWithDetails());
-      setEditModalOpen(false);
-      setEditFor(null);
-    } catch (err) {
-      console.error("Update failed:", err);
-      window.alert("Update failed. See console for details.");
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "accepted": return "text-green-600 font-semibold";
-      case "rejected": return "text-red-600 font-semibold";
-      case "blocked": return "text-gray-600 font-semibold";
-      default: return "text-yellow-600 font-semibold";
-    }
-  };
-
+  // ================= FILTER =================
   const filteredWorkers = list.filter((worker) => {
-    const workerId = normalizeWorkerId(worker);
-    const status = workerStatus[workerId] || "pending";
-
+    const status = getWorkerStatus(worker);
     const q = searchTerm.trim().toLowerCase();
-    const matchesSearch =
-      !q ||
-      (worker?.name || worker?.fullName || "").toLowerCase().includes(q) ||
-      (worker?.email || "").toLowerCase().includes(q) ||
-      (worker?.phone || worker?.mobile || "").toLowerCase().includes(q);
 
-    const matchesStatus = statusFilter === "All" || status === statusFilter.toLowerCase();
-
-    return matchesSearch && matchesStatus;
+    return (
+      (!q ||
+        worker.email?.toLowerCase().includes(q) ||
+        getPhone(worker).includes(q)) &&
+      (statusFilter === "All" ||
+        status === statusFilter.toLowerCase())
+    );
   });
 
   return (
     <div className="p-6 bg-green-50 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">Workers Management</h2>
-        <button
-          onClick={() => {
-            if (!list.length) return;
-            const headers = ["ID","Name","Email","Phone","Status","Skills","Experience","Services","Documents"];
-            const rows = list.map((w) => [
-              normalizeWorkerId(w),
-              w.name || w.fullName || "",
-              w.email || "",
-              w.phone || w.mobile || "",
-              workerStatus[normalizeWorkerId(w)] || "pending",
-              (w.profile?.skills || []).join(", "),
-              w.profile?.experienceYears ?? "",
-              (w.services || []).map((s) => s.serviceName || "").join(", "),
-              (w.documents || []).map((d) => d.type || "").join(", ")
-            ]);
-            const csvContent = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.setAttribute("download", "workers.csv");
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }}
-          className="px-5 py-2 bg-green-400 text-white rounded-lg"
-        >
-          Export CSV
-        </button>
+        <h2 className="text-2xl font-bold text-gray-800">
+          Workers Management
+        </h2>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <input
           type="text"
-          placeholder="Search by name, email, phone..."
+          placeholder="Search by email, phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="px-3 py-2 border rounded-lg flex-1"
         />
+
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -151,50 +114,81 @@ const Service2 = () => {
           <option>Accepted</option>
           <option>Pending</option>
           <option>Rejected</option>
-          <option>Blocked</option>
         </select>
       </div>
 
-      {/* Workers Table */}
+      {/* ================= TABLE ================= */}
       <div className="overflow-x-auto rounded-2xl shadow-lg border border-gray-200">
         <table className="w-full text-sm text-left text-gray-600">
-          <thead className="bg-green-200 text-gray-700 text-xs uppercase sticky top-0">
+          <thead className="bg-gradient-to-r from-green-200 to-blue-200 text-gray-700 text-xs uppercase">
             <tr>
-              <th className="px-3 py-3 text-left">Name</th>
-              <th className="px-3 py-3 text-left">Email</th>
-              <th className="px-3 py-3 text-left">Phone</th>
-              <th className="px-3 py-3 text-left">Status</th>
-              <th className="px-3 py-3 text-center">Actions</th>
+              <th className="px-6 py-3">Email</th>
+              <th className="px-6 py-3">Phone</th>
+              <th className="px-6 py-3">Status</th>
+              <th className="px-6 py-3 text-center">Actions</th>
             </tr>
           </thead>
+
           <tbody>
             {filteredWorkers.map((worker, idx) => {
-              const workerId = normalizeWorkerId(worker);
-              const status = workerStatus[workerId] || "pending";
+              const workerId = worker._id;
+              const status = getWorkerStatus(worker);
+
               return (
-                <tr key={workerId || idx} className={idx%2===0?"bg-white":"bg-green-50"}>
-                  <td className="px-4 py-3">{worker?.name || worker?.fullName || "—"}</td>
-                  <td className="px-4 py-3">{worker?.email || "—"}</td>
-                  <td className="px-4 py-3">{worker?.phone || worker?.mobile || "N/A"}</td>
-                  <td className={`px-4 py-3 ${getStatusColor(status)}`}>{status.charAt(0).toUpperCase() + status.slice(1)}</td>
-                  <td className="px-4 py-3 text-center flex gap-2 justify-center">
+                <tr
+                  key={workerId || idx}
+                  className={`${
+                    idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  } hover:bg-gray-100 transition`}
+                >
+                  <td className="px-6 py-4">
+                    {getEmail(worker) || "—"}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    {getPhone(worker) || "N/A"}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        status === "accepted"
+                          ? "bg-green-100 text-green-700"
+                          : status === "rejected"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {status}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-4 text-center flex gap-2 justify-center">
                     <button
-                      className="px-3 py-1 bg-blue-500 text-white rounded-lg"
-                      onClick={() => handleVerifyWorker(worker, "accepted")}
+                      onClick={() =>
+                        handleVerifyWorker(worker, "verified")
+                      }
+                      className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                     >
                       Accept
                     </button>
+
                     <button
-                      className="px-3 py-1 bg-red-500 text-white rounded-lg"
-                      onClick={() => handleVerifyWorker(worker, "rejected")}
+                      onClick={() =>
+                        handleVerifyWorker(worker, "rejected")
+                      }
+                      className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600"
                     >
                       Reject
                     </button>
+
                     <button
-                      className="px-3 py-1 bg-yellow-500 text-white rounded-lg"
-                      onClick={() => openEdit(worker)}
+                      onClick={() =>
+                        setSelectedDocs(worker.documents?.[0])
+                      }
+                      className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
                     >
-                      Edit
+                      View
                     </button>
                   </td>
                 </tr>
@@ -204,45 +198,65 @@ const Service2 = () => {
         </table>
       </div>
 
-      {/* Edit Modal */}
-      {editModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <form
-            onSubmit={handleSubmitEdit}
-            className="bg-white p-6 rounded-2xl shadow-lg w-96"
-          >
-            <h3 className="text-lg font-semibold mb-4">Edit Worker</h3>
-            <input
-              className="w-full border rounded-lg p-2 mb-3"
-              placeholder="Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
-            <input
-              className="w-full border rounded-lg p-2 mb-3"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
-            <input
-              className="w-full border rounded-lg p-2 mb-3"
-              placeholder="Phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            />
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                type="button"
-                onClick={() => setEditModalOpen(false)}
-                className="px-4 py-2 border rounded-lg"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded-lg">
-                Save
-              </button>
+      {/* ================= MODAL ================= */}
+      {selectedDocs && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-[90%] max-w-2xl shadow-lg relative">
+
+            <button
+              onClick={() => setSelectedDocs(null)}
+              className="absolute top-2 right-3 text-xl font-bold text-gray-600"
+            >
+              ×
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4">
+              Worker Documents
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {selectedDocs?.aadhar?.url && (
+                <div>
+                  <p className="font-medium mb-1">Aadhar</p>
+                  <a href={selectedDocs.aadhar.url} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={selectedDocs.aadhar.url}
+                      alt="Aadhar"
+                      className="w-full h-40 object-cover rounded-lg border cursor-pointer hover:scale-105 transition"
+                    />
+                  </a>
+                </div>
+              )}
+
+              {selectedDocs?.pan?.url && (
+                <div>
+                  <p className="font-medium mb-1">PAN</p>
+                  <a href={selectedDocs.pan.url} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={selectedDocs.pan.url}
+                      alt="PAN"
+                      className="w-full h-40 object-cover rounded-lg border cursor-pointer hover:scale-105 transition"
+                    />
+                  </a>
+                </div>
+              )}
+
+              {selectedDocs?.policeVerification?.url && (
+                <div>
+                  <p className="font-medium mb-1">Police Verification</p>
+                  <a href={selectedDocs.policeVerification.url} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={selectedDocs.policeVerification.url}
+                      alt="Police"
+                      className="w-full h-40 object-cover rounded-lg border cursor-pointer hover:scale-105 transition"
+                    />
+                  </a>
+                </div>
+              )}
+
             </div>
-          </form>
+          </div>
         </div>
       )}
     </div>

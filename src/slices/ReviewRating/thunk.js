@@ -18,8 +18,10 @@ export const fetchWorkerReviewsThunk = () => async (dispatch) => {
   dispatch(setLoading(true));
   dispatch(setError(null));
   try {
-    const reviews = await getReviewsByWorkerIdApi(WORKER_ID);
-    dispatch(setWorkerReviews(reviews));
+    const res = await getReviewsByWorkerIdApi(WORKER_ID);
+
+    // ✅ FIX HERE
+    dispatch(setWorkerReviews(res?.data || []));
   } catch (err) {
     dispatch(setError(err));
   } finally {
@@ -31,8 +33,10 @@ export const fetchCustomerReviewsThunk = () => async (dispatch) => {
   dispatch(setLoading(true));
   dispatch(setError(null));
   try {
-    const reviews = await getReviewsByCustomerIdApi(CUSTOMER_ID);
-    dispatch(setCustomerReviews(reviews));
+    const res = await getReviewsByCustomerIdApi(CUSTOMER_ID);
+
+    // ✅ FIX HERE
+    dispatch(setCustomerReviews(res?.data || []));
   } catch (err) {
     dispatch(setError(err));
   } finally {
