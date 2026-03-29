@@ -13,9 +13,10 @@ export default function Orders() {
   ...b,
 
   description:
-    b.workerServiceId?.description ||
-    b.workerServiceId?.serviceId?.description ||
-    "No description",
+  b.workerServiceId?.serviceId?.title ||   // ⭐ MAIN (Pipe fitting, Tap fixing)
+  b.workerServiceId?.description ||
+  b.workerServiceId?.serviceId?.description ||
+  "No description",
 
   price: b.totalAmount || b.subTotal || 0,
 
@@ -446,7 +447,7 @@ export default function Orders() {
               <strong>City:</strong> {selectedBooking.city}
             </p>
             <p>
-              <strong>Booking Date:</strong> {selectedBooking.bookingDate}{" "}
+              <strong>Booking Date:</strong> {selectedBooking.bookingDateFormatted}{" "}
               {selectedBooking.timeSlot}
             </p>
             <p>
