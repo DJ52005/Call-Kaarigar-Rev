@@ -21,22 +21,6 @@ const Service2 = () => {
     dispatch(fetchWorkersWithDetails());
   }, [dispatch]);
 
-  // ================= DEBUG =================
-  useEffect(() => {
-    console.log("🔥 WORKER LIST FULL:");
-
-    list.forEach((worker, i) => {
-      console.log(`👷 Worker ${i + 1}:`, worker);
-      console.log("👉 worker._id (FINAL):", worker._id);
-
-      if (worker.documents?.length) {
-        console.log("✅ Documents:", worker.documents);
-      } else {
-        console.log("⚠️ No documents");
-      }
-    });
-  }, [list]);
-
   if (loading) return <p className="text-center">Loading...</p>;
   if (error) return <p className="text-red-500 text-center">{String(error)}</p>;
 
@@ -51,26 +35,35 @@ const Service2 = () => {
     return doc?.status || "pending";
   };
 
+  // ================= STATS =================
+  const totalWorkers = list.length;
+
+  const verifiedWorkers = list.filter(
+    (w) => getWorkerStatus(w) === "accepted"
+  ).length;
+
+  const pendingWorkers = list.filter(
+    (w) => getWorkerStatus(w) === "pending"
+  ).length;
+
   // ================= VERIFY =================
   const handleVerifyWorker = (worker, status) => {
-  const doc = worker?.documents?.[0];
+    const doc = worker?.documents?.[0];
 
-  if (!doc?._id) {
-    console.warn("❌ No document found for worker:", worker._id);
-    return;
-  }
+    if (!doc?._id) {
+      console.warn("No document found for worker:", worker._id);
+      return;
+    }
 
-  console.log("🚀 Verifying docId:", doc._id);
-
-  dispatch(verifyWorkerDocument({ docId: doc._id, status }))
-    .unwrap()
-    .then(() => {
-      dispatch(fetchWorkersWithDetails()); // 🔥 refresh list
-    })
-    .catch((err) => {
-      console.error("❌ Verify failed:", err);
-    });
-};
+    dispatch(verifyWorkerDocument({ docId: doc._id, status }))
+      .unwrap()
+      .then(() => {
+        dispatch(fetchWorkersWithDetails());
+      })
+      .catch((err) => {
+        console.error("Verify failed:", err);
+      });
+  };
 
   // ================= FILTER =================
   const filteredWorkers = list.filter((worker) => {
@@ -88,14 +81,43 @@ const Service2 = () => {
 
   return (
     <div className="p-6 bg-green-50 min-h-screen">
-      {/* Header */}
+      {/* ================= HEADER ================= */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold text-gray-800">
           Workers Management
         </h2>
       </div>
 
-      {/* Filters */}
+      {/* ================= STATS CARDS ================= */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+        {/* Total */}
+        <div className="bg-white rounded-2xl shadow-md p-4 border-l-4 border-green-500">
+          <p className="text-sm text-gray-500">Total Workers</p>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {totalWorkers}
+          </h2>
+        </div>
+
+        {/* Verified */}
+        <div className="bg-white rounded-2xl shadow-md p-4 border-l-4 border-blue-500">
+          <p className="text-sm text-gray-500">Verified Workers</p>
+          <h2 className="text-2xl font-bold text-blue-600">
+            {verifiedWorkers}
+          </h2>
+        </div>
+
+        {/* Pending */}
+        <div className="bg-white rounded-2xl shadow-md p-4 border-l-4 border-yellow-500">
+          <p className="text-sm text-gray-500">Pending Workers</p>
+          <h2 className="text-2xl font-bold text-yellow-600">
+            {pendingWorkers}
+          </h2>
+        </div>
+
+      </div>
+
+      {/* ================= FILTERS ================= */}
       <div className="flex flex-wrap gap-3 mb-6">
         <input
           type="text"
@@ -120,7 +142,7 @@ const Service2 = () => {
       {/* ================= TABLE ================= */}
       <div className="overflow-x-auto rounded-2xl shadow-lg border border-gray-200">
         <table className="w-full text-sm text-left text-gray-600">
-          <thead className="bg-gradient-to-r from-green-200 to-blue-200 text-gray-700 text-xs uppercase">
+          <thead className="bg-green-200 text-gray-700 text-xs uppercase">
             <tr>
               <th className="px-6 py-3">Email</th>
               <th className="px-6 py-3">Phone</th>
@@ -219,39 +241,33 @@ const Service2 = () => {
               {selectedDocs?.aadhar?.url && (
                 <div>
                   <p className="font-medium mb-1">Aadhar</p>
-                  <a href={selectedDocs.aadhar.url} target="_blank" rel="noopener noreferrer">
-                    <img
-                      src={selectedDocs.aadhar.url}
-                      alt="Aadhar"
-                      className="w-full h-40 object-cover rounded-lg border cursor-pointer hover:scale-105 transition"
-                    />
-                  </a>
+                  <img
+                    src={selectedDocs.aadhar.url}
+                    alt="Aadhar"
+                    className="w-full h-40 object-cover rounded-lg border"
+                  />
                 </div>
               )}
 
               {selectedDocs?.pan?.url && (
                 <div>
                   <p className="font-medium mb-1">PAN</p>
-                  <a href={selectedDocs.pan.url} target="_blank" rel="noopener noreferrer">
-                    <img
-                      src={selectedDocs.pan.url}
-                      alt="PAN"
-                      className="w-full h-40 object-cover rounded-lg border cursor-pointer hover:scale-105 transition"
-                    />
-                  </a>
+                  <img
+                    src={selectedDocs.pan.url}
+                    alt="PAN"
+                    className="w-full h-40 object-cover rounded-lg border"
+                  />
                 </div>
               )}
 
               {selectedDocs?.policeVerification?.url && (
                 <div>
                   <p className="font-medium mb-1">Police Verification</p>
-                  <a href={selectedDocs.policeVerification.url} target="_blank" rel="noopener noreferrer">
-                    <img
-                      src={selectedDocs.policeVerification.url}
-                      alt="Police"
-                      className="w-full h-40 object-cover rounded-lg border cursor-pointer hover:scale-105 transition"
-                    />
-                  </a>
+                  <img
+                    src={selectedDocs.policeVerification.url}
+                    alt="Police"
+                    className="w-full h-40 object-cover rounded-lg border"
+                  />
                 </div>
               )}
 

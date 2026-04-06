@@ -91,7 +91,7 @@ const Dashboard = () => {
   }));
 
   return (
-    <div className="p-6 space-y-6 bg-gradient-to-br from-green-50 via-blue-50 to-white min-h-screen">
+    <div className="p-6 space-y-6 bg-gradient-to-br from-green-50 via-green-50 to-white min-h-screen">
       {/* Header Row with Title + Export */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
