@@ -31,9 +31,16 @@ const Service2 = () => {
 
   // ================= STATUS =================
   const getWorkerStatus = (worker) => {
-    const doc = worker?.documents?.[0];
-    return doc?.status || "pending";
-  };
+  if (!worker?.documents?.length) return "pending";
+
+  if (worker.documents.some((d) => d.status === "rejected"))
+    return "rejected";
+
+  if (worker.documents.every((d) => ["accepted", "verified"].includes(d.status)))
+  return "accepted";
+
+  return "pending";
+};
 
   // ================= STATS =================
   const totalWorkers = list.length;
@@ -48,7 +55,7 @@ const Service2 = () => {
 
   // ================= VERIFY =================
   const handleVerifyWorker = (worker, status) => {
-    const doc = worker?.documents?.[0];
+    const doc = worker?.documents?.[0]; // still use first doc for API (safe)
 
     if (!doc?._id) {
       console.warn("No document found for worker:", worker._id);
@@ -206,7 +213,7 @@ const Service2 = () => {
 
                     <button
                       onClick={() =>
-                        setSelectedDocs(worker.documents?.[0])
+                        setSelectedDocs(worker.documents || [])
                       }
                       className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
                     >
@@ -220,61 +227,60 @@ const Service2 = () => {
         </table>
       </div>
 
-      {/* ================= MODAL ================= */}
-      {selectedDocs && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-[90%] max-w-2xl shadow-lg relative">
+     {/* ================= MODAL ================= */}
+{selectedDocs && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded-xl w-[90%] max-w-3xl shadow-lg relative">
 
-            <button
-              onClick={() => setSelectedDocs(null)}
-              className="absolute top-2 right-3 text-xl font-bold text-gray-600"
-            >
-              ×
-            </button>
+      {/* CLOSE BUTTON */}
+      <button
+        onClick={() => setSelectedDocs(null)}
+        className="absolute top-2 right-3 text-xl font-bold text-gray-600"
+      >
+        ×
+      </button>
 
-            <h2 className="text-xl font-semibold mb-4">
-              Worker Documents
-            </h2>
+      <h2 className="text-xl font-semibold mb-4">
+        Worker Documents
+      </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              {selectedDocs?.aadhar?.url && (
-                <div>
-                  <p className="font-medium mb-1">Aadhar</p>
-                  <img
-                    src={selectedDocs.aadhar.url}
-                    alt="Aadhar"
-                    className="w-full h-40 object-cover rounded-lg border"
-                  />
-                </div>
-              )}
+        {selectedDocs.length === 0 && (
+          <p className="text-gray-500">No documents available</p>
+        )}
 
-              {selectedDocs?.pan?.url && (
-                <div>
-                  <p className="font-medium mb-1">PAN</p>
-                  <img
-                    src={selectedDocs.pan.url}
-                    alt="PAN"
-                    className="w-full h-40 object-cover rounded-lg border"
-                  />
-                </div>
-              )}
+        {selectedDocs.map((doc, idx) => (
+          <div
+            key={doc._id || idx}
+            className="border rounded-lg p-2 shadow-sm"
+          >
+            {/* TITLE */}
+            <p className="font-medium mb-2 capitalize">
+              {doc.type === "certification"
+                ? doc.title || "Certification"
+                : doc.type}
+            </p>
 
-              {selectedDocs?.policeVerification?.url && (
-                <div>
-                  <p className="font-medium mb-1">Police Verification</p>
-                  <img
-                    src={selectedDocs.policeVerification.url}
-                    alt="Police"
-                    className="w-full h-40 object-cover rounded-lg border"
-                  />
-                </div>
-              )}
+            {/* IMAGE */}
+            <img
+              src={doc.url}
+              alt={doc.type}
+              className="w-full h-40 object-cover rounded-lg border"
+            />
 
-            </div>
+            {/* TYPE LABEL (optional small text) */}
+            <p className="text-xs text-gray-400 mt-1">
+              {doc.type}
+            </p>
           </div>
-        </div>
-      )}
+        ))}
+
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

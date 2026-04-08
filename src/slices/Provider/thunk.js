@@ -29,8 +29,6 @@ export const fetchWorkersWithDetails = createAsyncThunk(
 
       const normalizedWorkers = await Promise.all(
         workersArray.map(async (worker) => {
-          
-          // ✅ HANDLE NESTED _id OBJECT
           const workerId =
             typeof worker?._id === "object"
               ? worker._id._id
@@ -41,31 +39,56 @@ export const fetchWorkersWithDetails = createAsyncThunk(
             return { ...worker, documents: [], services: [] };
           }
 
-          console.log("✅ workerId:", workerId);
-
           // ================= FETCH DOCUMENTS =================
           let documents = [];
 
-try {
-  const docsRes = await getWorkerDocumentsApi(workerId);
+          try {
+            const docsRes = await getWorkerDocumentsApi(workerId);
+            const data = docsRes.data?.data || docsRes.data;
 
-  console.log("📄 DOC API RESPONSE:", docsRes.data);
+            console.log("📄 DOC API RESPONSE:", data);
 
-  if (Array.isArray(docsRes.data)) {
-    documents = docsRes.data;
-  } else if (Array.isArray(docsRes.data?.data)) {
-    documents = docsRes.data.data;
-  } 
-  // 🔥 THIS IS THE MISSING CASE
-  else if (docsRes.data && typeof docsRes.data === "object") {
-    documents = [docsRes.data]; // ✅ wrap single object into array
-  } else {
-    documents = [];
-  }
-
-} catch (err) {
-  console.warn(`❌ Documents fetch failed for ${workerId}`, err);
-}
+            if (data && typeof data === "object") {
+              documents = [
+                data.aadhar && {
+                  type: "aadhar",
+                  url: data.aadhar.url,
+                  fileType: data.aadhar.fileType,
+                  status: data.status || "pending",
+                  _id: data._id,
+                },
+                data.pan && {
+                  type: "pan",
+                  url: data.pan.url,
+                  fileType: data.pan.fileType,
+                  status: data.status || "pending",
+                  _id: data._id,
+                },
+                data.policeVerification && {
+                  type: "policeVerification",
+                  url: data.policeVerification.url,
+                  fileType: data.policeVerification.fileType,
+                  status: data.status || "pending",
+                  _id: data._id,
+                },
+                ...(Array.isArray(data.certifications)
+                  ? data.certifications.map((c) => ({
+                      type: "certification",
+                      url: c.url,
+                      fileType: c.fileType,
+                      title: c.title,
+                      verified: c.verified,
+                      status: c.verified ? "accepted" : "pending",
+                      _id: c._id,
+                    }))
+                  : []),
+              ].filter(Boolean);
+            } else {
+              documents = [];
+            }
+          } catch (err) {
+            console.warn(`❌ Documents fetch failed for ${workerId}`, err);
+          }
 
           // ================= FETCH SERVICES =================
           let services = [];
@@ -80,14 +103,13 @@ try {
             } else {
               services = [];
             }
-
           } catch (err) {
             console.warn(`❌ Services fetch failed for ${workerId}`, err);
           }
 
           return {
             ...worker,
-            _id: workerId, // ✅ ALWAYS STRING NOW
+            _id: workerId,
             documents,
             services,
           };
@@ -95,7 +117,6 @@ try {
       );
 
       return normalizedWorkers;
-
     } catch (err) {
       console.error("❌ Error fetching workers:", err);
       return rejectWithValue(
@@ -140,8 +161,6 @@ export const verifyWorkerDocument = createAsyncThunk(
   "provider/verifyDocument",
   async ({ docId, status }, { rejectWithValue }) => {
     try {
-      console.log("🚀 VERIFY:", docId, status);
-
       const res = await verifyWorkerDocumentApi(docId, status);
 
       return {
@@ -149,9 +168,7 @@ export const verifyWorkerDocument = createAsyncThunk(
         status,
         data: res.data || res,
       };
-
     } catch (err) {
-      console.error("❌ Verify failed:", err);
       return rejectWithValue(
         err.response?.data || "Error verifying document"
       );
